@@ -2,14 +2,35 @@
 
 use DI\Container;
 
+if (false === \file_exists(__DIR__ . '/../config/settings.php')) {
+    throw new \RuntimeException('Settings file not found. Please create config/settings.php.');
+}
+
 $container = new Container();
 
-$container->set(\App\Service\GoogleClient::class, function () {
-    return new \App\Service\GoogleClient(
-        __DIR__ . '/../config/google-credentials.json',
-        __DIR__ . '/../storage/tokens/google-token.json',
-        'your-email@example.com'
-    );
+$settings = require __DIR__ . '/../config/settings.php';
+$container->set('settings', $settings);
+
+$container->set(\PDO::class, function () {
+    $pdo = new \PDO('sqlite:' . __DIR__ . '/../storage/database.db');
+    $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+    return $pdo;
 });
+
+$container->set(\App\Repository\VideoRepository::class, static function ($container) {
+    return new \App\Repository\VideoRepository($container->get(\PDO::class));
+});
+
+$container->set(\App\Service\GoogleClient::class, static function () use ($settings) {
+    return new \App\Service\GoogleClient($settings['google']);
+});
+
+$container->set(\App\Service\CohereClient::class, static function () use ($settings) {
+    return new \App\Service\CohereClient($settings['cohere']);
+});
+$container->set(\App\Service\PineconeClient::class, static function () use ($settings) {
+    return new \App\Service\PineconeClient($settings['pinecone']);
+});
+
 
 return $container;

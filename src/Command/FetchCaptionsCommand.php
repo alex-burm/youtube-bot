@@ -2,6 +2,7 @@
 
 namespace App\Command;
 
+use App\Repository\VideoRepository;
 use App\Service\GoogleClient;
 use Google\Service\YouTube;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -15,37 +16,24 @@ class FetchCaptionsCommand extends Command
     protected YouTube $youtube;
 
     public function __construct(
-        protected GoogleClient $client,
+        protected GoogleClient    $googleClient,
+        protected VideoRepository $videoRepository,
     ) {
         parent::__construct();
-        $this->youtube = $this->client->getYoutube();
+        $this->youtube = $this->googleClient->getYoutube();
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $params = [
-            'channelId' => 'UC3y33E2JqXCAh125rKnmjzw',
-            'maxResults' => 10,
-            'type' => 'video',
-        ];
+        $list = $this->videoRepository->getListWithoutCaptions();
+        foreach ($list as $item) {
+            $output->write('Captions saving for ' . $item['id'] . '... ');
+            $bytes = $this->saveTranscript($item['id']);
+            $output->write($bytes . ' bytes written.');
 
-        do {
-            $response = $this->youtube->search->listSearch('snippet', $params);
-
-            foreach ($response->getItems() as $video) {
-                $videoId = $video->getId()->getVideoId();
-                //$title = $video->getSnippet()->getTitle();
-
-                $output->write('Captions saving for ' . $videoId . '... ');
-                $bytes = $this->saveTranscript($videoId);
-                $output->writeln($bytes . ' bytes written.');
-            }
-
-            $page = $response->getNextPageToken();
-            if ($page) {
-                $params['pageToken'] = $page;
-            }
-        } while ($page);
+            $this->videoRepository->setCaptions($item['id'], true);
+            $output->writeln('...saved');
+        }
 
         return Command::SUCCESS;
     }

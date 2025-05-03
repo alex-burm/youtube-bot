@@ -1,0 +1,17 @@
+<?php
+
+return [
+    'google' => [
+        'credentials_pPath' => __DIR__ . '/../config/google-credentials.json',
+        'token_path' => __DIR__ . '/../storage/tokens/google-token.json',
+        'notify_email' => 'your-email@example.com'
+    ],
+    'pinecone' => [
+        'api_key' => '',
+        'base_uri' => ''
+    ],
+    'cohere' => [
+        'api_key' => '',
+        'base_uri' => '',
+    ]
+];
