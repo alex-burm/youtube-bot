@@ -10,12 +10,10 @@ class GoogleClient
     protected Client $client;
 
     public function __construct(
-        protected string $credentialsPath,
-        protected string $tokenPath,
-        protected string $notifyEmail
+        protected array $settings,
     ) {
         $client = new Client();
-        $client->setAuthConfig($this->credentialsPath);
+        $client->setAuthConfig($this->settings['credentials_path']);
         $client->addScope(YouTube::YOUTUBE_FORCE_SSL);
         $client->setAccessType('offline');
         $client->setPrompt('select_account consent');
@@ -36,14 +34,14 @@ class GoogleClient
 
     protected function loadToken(Client $client): void
     {
-        if (false === \file_exists($this->tokenPath)) {
+        if (false === \file_exists($this->settings['token_path'])) {
             $this->notifyTokenIssue('No token file found.');
             return ;
         }
         try {
             $client->setAccessToken(
                 \json_decode(
-                    \file_get_contents($this->tokenPath),
+                    \file_get_contents($this->settings['token_path']),
                     true
                 )
             );
@@ -54,19 +52,19 @@ class GoogleClient
 
             if ($client->getRefreshToken()) {
                 $client->fetchAccessTokenWithRefreshToken($client->getRefreshToken());
-                \file_put_contents($this->tokenPath, \json_encode($client->getAccessToken()));
+                \file_put_contents($this->settings['token_path'], \json_encode($client->getAccessToken()));
             } else {
-                \unlink($this->tokenPath);
+                \unlink($this->settings['token_path']);
                 $this->notifyTokenIssue('Token expired and no refresh token.');
             }
         } catch (\Exception $e) {
-            unlink($this->tokenPath);
+            \unlink($this->settings['token_path']);
             $this->notifyTokenIssue('Error loading token: ' . $e->getMessage());
         }
     }
 
     protected function notifyTokenIssue(string $message): void
     {
-        //\mail($this->notifyEmail, 'OAuth Token Issue', $message);
+        //\mail($this->settings['notify_email'], 'OAuth Token Issue', $message);
     }
 }
