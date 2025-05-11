@@ -68,9 +68,9 @@ class VideoRepository
 
     public function find(string $id): array
     {
-        $stm = $this->pdo->query('SELECT * FROM video WHERE id = :id');
+        $stm = $this->pdo->query('SELECT * FROM video WHERE id = :id LIMIT 1');
         $stm->bindValue(':id', $id);
         $stm->execute();
-        return $stm->fetchAll(\PDO::FETCH_ASSOC);
+        return $stm->fetch(\PDO::FETCH_ASSOC);
     }
 }
