@@ -13,5 +13,13 @@ return [
     'cohere' => [
         'api_key' => '',
         'base_uri' => '',
-    ]
+    ],
+    'botman' => [
+        'telegram' => [
+            'token' => '',
+        ],
+    ],
+    'gpt' => [
+        'api_key' => '',
+    ],
 ];

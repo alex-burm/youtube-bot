@@ -23,9 +23,14 @@ class FetchListCommand extends Command
         $this->youtube = $this->googleClient->getYoutube();
     }
 
+    protected function configure()
+    {
+        $this->addArgument('playlist', null, 'The ID of the playlist to fetch videos from');
+    }
+
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $playlistId = '';
+        $playlistId = $input->getArgument('playlist');
         $page = null;
         do {
             $params = [
@@ -42,7 +47,7 @@ class FetchListCommand extends Command
                 $snippet = $playlistItem->getSnippet();
                 $videoId = $snippet->getResourceId()->getVideoId();
                 $title = $snippet->getTitle();
-                $thumbnail = $snippet->getThumbnails()->getMedium()->url;
+                $thumbnail = $snippet->getThumbnails()->getMaxres()->url;
 
                 $output->write(\sprintf('Video (%s): %s', $videoId, $title));
 

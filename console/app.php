@@ -21,6 +21,7 @@ $application->add(new Command\FetchListCommand(
 ));
 
 $application->add(new Command\IndexCaptionsCommand(
+    gptClient: $container->get(\App\Service\GptClient::class),
     cohereClient: $container->get(\App\Service\CohereClient::class),
     pineconeClient: $container->get(\App\Service\PineconeClient::class),
     videoRepository: $container->get(\App\Repository\VideoRepository::class),

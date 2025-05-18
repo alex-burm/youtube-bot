@@ -4,6 +4,7 @@ namespace App\Command;
 
 use App\Repository\VideoRepository;
 use App\Service\CohereClient;
+use App\Service\GptClient;
 use App\Service\PineconeClient;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -15,6 +16,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 class IndexCaptionsCommand extends Command
 {
     public function __construct(
+        protected GptClient      $gptClient,
         protected CohereClient   $cohereClient,
         protected PineconeClient $pineconeClient,
         protected VideoRepository $videoRepository,
@@ -24,7 +26,7 @@ class IndexCaptionsCommand extends Command
 
     protected function configure()
     {
-        $this->addOption('clear', null, InputOption::VALUE_OPTIONAL, 'Clear all indexed captions');
+        $this->addOption('clear', null, InputOption::VALUE_NONE, 'Clear all indexed captions');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -43,21 +45,38 @@ class IndexCaptionsCommand extends Command
             }
             $output->writeln('Processing file: ' . \basename($file));
 
-            $captions = $this->parseCrtFileWithTime($file);
+            $output->write(' - Summarizing...');
+            if (\strlen($item['summary'] ?? '') === 0) {
+                $output->write('no summary found, generating...');
+                $summary = $this->getSummary($file);
+                $this->videoRepository->setSummary($item['id'], $summary);
+            } else {
+                $summary = $item['summary'];
+            }
+
+            if (\strlen($summary) === 0) {
+                throw new \Exception('Summary is empty, check gpt balance');
+            }
+
+            $this->index($summary, $item['id']);
+            $output->writeln('done');
+
+            $captions = $this->parseSrtFileWithTime($file);
             $groups = $this->groupCaptionsWithOverlap($captions);
 
+            $output->write(' - Title...');
             $this->index($item['title'], $item['id']);
+            $output->writeln('done');
 
             $groupsCount = \count($groups);
-            $output->write('Number of groups: ' . $groupsCount . ' ');
+            $output->write(' - Captions (' . $groupsCount . ')...');
             foreach ($groups as $i => $group) {
                 $text = \implode(' ', \array_column($group, 'text'));
 
                 $this->index($text, $item['id']);
-                $output->write(($i + 1) . ', ');
-
+                $output->write(($i + 1) . ' ');
             }
-            $output->writeln('');
+            $output->writeln('done');
             $this->videoRepository->setIndexed($item['id'], true);
         }
 
@@ -65,9 +84,12 @@ class IndexCaptionsCommand extends Command
         return Command::SUCCESS;
     }
 
-    protected function index($text, $videoId)
+    protected function index(string $text, string $videoId): void
     {
-        $embedding = $this->cohereClient->embed($text);
+        if (\strlen(\trim($text)) === 0) {
+            return;
+        }
+        $embedding = $this->gptClient->embed($text);
         $this->pineconeClient->upsert([
             [
                 'id' => \uniqid('group_'),
@@ -80,7 +102,13 @@ class IndexCaptionsCommand extends Command
         ]);
         \sleep(\rand(1, 3));
     }
-    protected function parseCrtFileWithTime(string $filePath): array
+
+    protected function getSummary(string $filePath): string
+    {
+        return $this->gptClient->summarize(\file_get_contents($filePath));
+    }
+
+    protected function parseSrtFileWithTime(string $filePath): array
     {
         $lines = \file($filePath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
         $captions = [];
@@ -122,7 +150,6 @@ class IndexCaptionsCommand extends Command
             });
 
             if (\count($currentGroup) > 0) {
-//            if (\count($currentGroup) === 0) {
                 $groups[] = $currentGroup;
             }
 

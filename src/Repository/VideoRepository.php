@@ -57,6 +57,15 @@ class VideoRepository
         ]);
     }
 
+    public function setSummary(string $id, string $summary): void
+    {
+        $stm = $this->pdo->prepare('UPDATE video SET summary = :summary WHERE id = :id');
+        $stm->execute([
+            'id' => $id,
+            'summary' => $summary,
+        ]);
+    }
+
     public function setIndexed(string $id, bool $indexed): void
     {
         $stm = $this->pdo->prepare('UPDATE video SET indexed = :indexed WHERE id = :id');
@@ -66,7 +75,7 @@ class VideoRepository
         ]);
     }
 
-    public function find(string $id): array
+    public function find(string $id): array|false
     {
         $stm = $this->pdo->query('SELECT * FROM video WHERE id = :id LIMIT 1');
         $stm->bindValue(':id', $id);
