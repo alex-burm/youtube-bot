@@ -2,8 +2,11 @@
 
 namespace App\Controller;
 
+use App\Repository\QueryRepository;
+use App\Repository\UserRepository;
 use App\Repository\VideoRepository;
 use App\Service\CohereClient;
+use App\Service\GptClient;
 use App\Service\PineconeClient;
 use BotMan\BotMan\BotMan;
 use BotMan\BotMan\BotManFactory;
@@ -22,8 +25,11 @@ class TelegramController
     public function __construct(
         protected ContainerInterface $container,
         protected CohereClient $cohereClient,
+        protected GptClient $gptClient,
         protected PineconeClient $pineconeClient,
         protected VideoRepository $videoRepository,
+        protected UserRepository $userRepository,
+        protected QueryRepository $queryRepository,
     ) {
     }
 
@@ -41,6 +47,16 @@ class TelegramController
             $message->withAttachment($image);
 
             $bot->reply($message, ['parse_mode' => 'HTML']);
+
+            $user = $this->userRepository->find($bot->getUser()->getId());
+            if (false === $user) {
+                $this->userRepository->add(
+                    id: $bot->getUser()->getId(),
+                    firstName: $bot->getUser()->getFirstName() ?? '',
+                    lastName: $bot->getUser()->getLastName() ?? '',
+                    username: $bot->getUser()->getUsername(),
+                );
+            }
         });
 
         $botman->hears('(.*)', function (BotMan $bot, $payload) {
@@ -58,6 +74,8 @@ class TelegramController
                 return;
             }
 
+            $this->queryRepository->add($bot->getUser()->getId(), $payload);
+
             $bot->reply($this->render('search', [
                 'query' => $payload,
             ]), ['parse_mode' => 'HTML']);
@@ -65,7 +83,7 @@ class TelegramController
             $bot->types();
 
             try {
-                $embedding = $this->cohereClient->embed($payload);
+                $embedding = $this->gptClient->embed($payload);
                 $response = $this->pineconeClient->query($embedding);
 
                 $videoIds = \array_unique(\array_map(static fn($match) => $match['metadata']['videoId'], $response['matches']));

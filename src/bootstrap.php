@@ -21,6 +21,14 @@ $container->set(\App\Repository\VideoRepository::class, static function ($contai
     return new \App\Repository\VideoRepository($container->get(\PDO::class));
 });
 
+$container->set(\App\Repository\UserRepository::class, static function ($container) {
+    return new \App\Repository\UserRepository($container->get(\PDO::class));
+});
+
+$container->set(\App\Repository\QueryRepository::class, static function ($container) {
+    return new \App\Repository\QueryRepository($container->get(\PDO::class));
+});
+
 $container->set(\App\Service\GoogleClient::class, static function () use ($settings) {
     return new \App\Service\GoogleClient($settings['google']);
 });
@@ -28,9 +36,13 @@ $container->set(\App\Service\GoogleClient::class, static function () use ($setti
 $container->set(\App\Service\CohereClient::class, static function () use ($settings) {
     return new \App\Service\CohereClient($settings['cohere']);
 });
+
 $container->set(\App\Service\PineconeClient::class, static function () use ($settings) {
     return new \App\Service\PineconeClient($settings['pinecone']);
 });
 
+$container->set(\App\Service\GptClient::class, static function () use ($settings) {
+    return new \App\Service\GptClient($settings['gpt']);
+});
 
 return $container;
