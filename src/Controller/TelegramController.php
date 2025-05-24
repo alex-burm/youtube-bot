@@ -86,7 +86,7 @@ class TelegramController
                 $embedding = $this->gptClient->embed($payload);
                 $response = $this->pineconeClient->query($embedding);
 
-                $filteredMatches = \array_filter($response['matches'], static fn ($x) => $x['score'] >= 0.7);
+                $filteredMatches = \array_filter($response['matches'], static fn ($x) => $x['score'] >= 0.6);
                 if (\count($filteredMatches) === 0) {
                     $bot->reply($this->render('no-results'), ['parse_mode' => 'HTML']);
                     return;
