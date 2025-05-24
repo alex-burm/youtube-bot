@@ -12,28 +12,21 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
-#[AsCommand(name: 'search-captions')]
-class SearchCaptionsCommand extends Command
+#[AsCommand(name: 'video-list')]
+class VideoListCommand extends Command
 {
     public function __construct(
-        protected GptClient $gptClient,
-        protected PineconeClient $pineconeClient,
         protected VideoRepository $videoRepository,
     ) {
         parent::__construct();
     }
 
-    protected function configure()
-    {
-        $this->addArgument('query', InputOption::VALUE_REQUIRED);
-    }
-
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $embedding = $this->gptClient->embed($input->getArgument('query'));
-        $response = $this->pineconeClient->query($embedding);
-
-        dump($response['matches']);
+        $list = $this->videoRepository->getList();
+        foreach ($list as $id => $title) {
+            $output->writeln(\sprintf('%s: %s', $id, $title));
+        }
         return Command::SUCCESS;
     }
 }

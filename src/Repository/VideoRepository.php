@@ -82,4 +82,11 @@ class VideoRepository
         $stm->execute();
         return $stm->fetch(\PDO::FETCH_ASSOC);
     }
+
+    public function getList(): array
+    {
+        $stm = $this->pdo->query('SELECT id,title FROM video');
+        $stm->execute();
+        return $stm->fetchAll(\PDO::FETCH_KEY_PAIR);
+    }
 }
