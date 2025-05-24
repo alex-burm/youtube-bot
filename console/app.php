@@ -28,8 +28,12 @@ $application->add(new Command\IndexCaptionsCommand(
 ));
 
 $application->add(new Command\SearchCaptionsCommand(
-    cohereClient: $container->get(\App\Service\CohereClient::class),
+    gptClient: $container->get(\App\Service\GptClient::class),
     pineconeClient: $container->get(\App\Service\PineconeClient::class),
+    videoRepository: $container->get(\App\Repository\VideoRepository::class),
+));
+
+$application->add(new Command\VideoListCommand(
     videoRepository: $container->get(\App\Repository\VideoRepository::class),
 ));
 

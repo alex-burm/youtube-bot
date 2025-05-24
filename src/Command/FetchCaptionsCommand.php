@@ -25,6 +25,7 @@ class FetchCaptionsCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
+        $this->saveTranscript('A14eOyNvRMA');
         $list = $this->videoRepository->getListWithoutCaptions();
         foreach ($list as $item) {
             $output->write('Captions saving for ' . $item['id'] . '... ');

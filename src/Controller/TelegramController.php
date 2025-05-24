@@ -86,7 +86,12 @@ class TelegramController
                 $embedding = $this->gptClient->embed($payload);
                 $response = $this->pineconeClient->query($embedding);
 
-                $videoIds = \array_unique(\array_map(static fn($match) => $match['metadata']['videoId'], $response['matches']));
+                $filteredMatches = \array_filter($response['matches'], static fn ($x) => $x['score'] >= 0.7);
+                if (\count($filteredMatches) === 0) {
+                    $bot->reply($this->render('no-results'), ['parse_mode' => 'HTML']);
+                    return;
+                }
+                $videoIds = \array_unique(\array_map(static fn($match) => $match['metadata']['videoId'], $filteredMatches));
                 foreach ($videoIds as $videoId) {
                     $video = $this->videoRepository->find($videoId);
 
