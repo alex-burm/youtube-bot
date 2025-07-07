@@ -83,13 +83,13 @@ class TelegramController
             $bot->types();
 
             try {
-                $embedding = $this->gptClient->embed($payload);
+                $normalizedQuery = $this->gptClient->normalize($payload);
+                $embedding = $this->gptClient->embed($normalizedQuery);
                 $response = $this->pineconeClient->query($embedding);
 
-                $filteredMatches = \array_filter($response['matches'], static fn ($x) => $x['score'] >= 0.6);
+                $filteredMatches = \array_filter($response['matches'], static fn ($x) => $x['score'] >= 0.5);
                 if (\count($filteredMatches) === 0) {
                     $bot->reply($this->render('no-results'), ['parse_mode' => 'HTML']);
-                    return;
                 }
                 $videoIds = \array_unique(\array_map(static fn($match) => $match['metadata']['videoId'], $filteredMatches));
                 foreach ($videoIds as $videoId) {
