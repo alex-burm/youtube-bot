@@ -14,6 +14,11 @@ class GptClient
         $this->client = \OpenAI::client($this->settings['api_key']);
     }
 
+    public function getClient(): Client
+    {
+        return $this->client;
+    }
+
     public function embed(string $prompt): array
     {
         $response = $this->client->embeddings()->create([
@@ -53,6 +58,25 @@ EOT
 
 {$message}
 EOT,
+                ]
+            ],
+        ]);
+
+        return $response->choices[0]->message->content ?? '';
+    }
+
+    public function normalize(string $message): string
+    {
+        $response = $this->client->chat()->create([
+            'model' => 'gpt-4-turbo',
+            'messages' => [
+                [
+                    'role' => 'system',
+                    'content' => 'Ты — помощник, который уточняет смысл кратких пользовательских поисковых запросов и превращает их в более подробные и смысловые. Задача — сделать запрос максимально понятным, чтобы по нему можно было эффективно искать по смыслу в векторной базе. Не добавляй приветствий и эмоций, используй русский язык для нормализации.'
+                ],
+                [
+                    'role' => 'user',
+                    'content' => $message,
                 ]
             ],
         ]);

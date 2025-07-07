@@ -30,7 +30,9 @@ class SearchCaptionsCommand extends Command
 
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
-        $embedding = $this->gptClient->embed($input->getArgument('query'));
+        $normalizedQuery = $this->gptClient->normalize($input->getArgument('query'));
+
+        $embedding = $this->gptClient->embed($normalizedQuery);
         $response = $this->pineconeClient->query($embedding);
 
         dump($response['matches']);
